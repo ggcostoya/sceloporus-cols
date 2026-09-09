@@ -29,6 +29,12 @@ format:
       - brand
     css: styles.css
     toc: true
+    lightbox: true
+
+knitr:
+  opts_chunk:
+    dev: png
+    dpi: 350
 
 
 

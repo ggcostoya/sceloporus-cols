@@ -1,5 +1,290 @@
 ---
 title: "Home range estimation"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
 ---
 
-About this site
+```{r r-setup, warning = FALSE, message = FALSE}
+#| code-summary: "R setup"
+
+# packages
+library(tidyverse)
+library(kableExtra)
+library(ggpubr)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+
+# define site and population colors
+site_colors <- c("HE" = "royalblue", "LE" = "darkorange")
+population_colors <- c(
+  "HE 2023" = "royalblue",
+  "LE 2023" = "darkorange",
+  "LE 2024" = "goldenrod4"
+)
+```
+
+## Mark-recapture dataset structure
+
+Here we load the compiled longitudinal mark-recapture dataset (`mr_data.rds`) and inspect its structure, including individual identifiers, capture timestamps (year and day of the year), morphometric attributes (snout-vent length, mass), sex, and spatial coordinates.
+
+```{r load-and-show-mr-data}
+#| code-fold: false
+mr_data <- readRDS("data/mr_data.rds")
+head(mr_data)
+str(mr_data)
+```
+
+## Probability of recapturing adult lizards
+
+To assess capture saturation and sampling completeness across field seasons, we filter the dataset for adult lizards (mean snout-vent length $> 75\text{ mm}$) and compute the cumulative number of unique individuals captured as a function of the day of the year (DOY) across sites and years.
+
+```{r plot-cummulative-captures}
+#| code-summary: "Plot cummulative captures"
+#| fig-width: 7
+#| fig-height: 4
+#| fig-align: center
+#| out-width: 80%
+
+# filter adults
+adults_by_site_year <- mr_data |>
+  group_by(site, year, sex, id) |>
+  summarise(avg_svl = mean(svl, na.rm = TRUE)) |>
+  filter(avg_svl > 75) |>
+  ungroup()
+
+# filter mark-recapture data to include only adults
+mr_data_adults <- mr_data |>
+  semi_join(adults_by_site_year, by = c("site", "year", "sex", "id"))
+
+# plot
+mr_data_adults |>
+  filter(
+    year > 2022,
+    paste(site, year) != "HE 2025"
+  ) |>
+  group_by(site, year, sex, id) |>
+  mutate(capture_number = row_number()) |>
+  ungroup() |>
+  group_by(site, year, doy) |>
+  summarise(
+    n_first_capture = sum(capture_number == 1), .groups = "drop"
+  ) |>
+  mutate(
+    cummulative_captures = cumsum(n_first_capture)
+  ) |>
+  ggplot(aes(x = doy, y = cummulative_captures, color = site)) +
+  geom_line(linewidth = 1) +
+  facet_wrap(~year, scales = "free_x") +
+  labs(
+    x = "Date",
+    y = "Number of unique adult lizards"
+  ) +
+  scale_color_manual(values = site_colors) +
+  scale_x_continuous(
+    breaks = c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335),
+    labels = month.abb,
+  ) +
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(fill = NA, linewidth = 0.5),
+    axis.ticks = element_line(linewidth = 0.25),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 14),
+    legend.position = "top",
+    strip.text = element_text(size = 14),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(linewidth = 0.25, color = "gray80")
+  )
+
+```
+
+Saturation is achieved across sites and years, indicating that the majority of adult lizards have likely been captured at least once during the field seasons.
+
+## Inter-annual survival probabilities
+
+To evaluate population persistence across seasons, we compute empirical apparent survival probabilities for adult males by tracking whether an individual detected in a given year was recaptured in the subsequent year. The resulting annual survival rates are plotted across consecutive yearly transitions for high- and low-elevation populations.
+
+```{r plot-inter-annual-survival-probabilities}
+#| code-summary: "Plot inter-annual survival probabilities"
+#| fig-width: 4
+#| fig-height: 4
+#| fig-asp: 1
+#| fig-align: center
+#| out-width: 50%
+
+mr_data_adults |>
+  select(site, id, sex, year) |>
+  distinct() |>
+  group_by(site, sex, id) |>
+  mutate(all_years = list(year)) |>
+  rowwise() |>
+  mutate(
+    surv_next_year = as.numeric((year + 1) %in% all_years)
+  ) |>
+  ungroup() |>
+  select(-all_years) |>
+  group_by(site, sex, year) |>
+  summarise(
+    surv_next_year = mean(surv_next_year), .groups = "drop"
+  ) |>
+  filter(year < 2025) |>
+  filter(year > 2022) |>
+  filter(sex == "M") |>
+  mutate(year = as.integer(year)) |>
+  mutate(surv_next_year = as.numeric(surv_next_year)) |>
+  ggplot(
+    aes(
+      x = paste(year, "to", year + 1),
+      y = surv_next_year,
+      color = site
+    )
+  ) +
+  geom_line(aes(group = site), linewidth = 1) +
+  geom_point(size = 3) +
+  labs(
+    x = "Interval",
+    y = "Mean inter-annual survival"
+  ) +
+  scale_color_manual(values = site_colors) +
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(fill = NA, linewidth = 0.5),
+    axis.ticks = element_line(linewidth = 0.25),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 14),
+    legend.position = "top",
+    strip.text = element_text(size = 14),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(
+      linewidth = 0.25,
+      color = "gray80"
+    )
+  )
+```
+
+Below we table the inter-annual survival probabilities for adult males across sites and years.
+
+```{r table-inter-annual-survival-probabilities}
+#| code-summary: "Table inter-annual survival probabilities"
+mr_data_adults |>
+  select(site, id, sex, year) |>
+  distinct() |>
+  group_by(site, sex, id) |>
+  mutate(all_years = list(year)) |>
+  rowwise() |>
+  mutate(
+    surv_next_year = as.numeric((year + 1) %in% all_years)
+  ) |>
+  ungroup() |>
+  select(-all_years) |>
+  group_by(site, sex, year) |>
+  summarise(
+    surv_next_year = mean(surv_next_year), .groups = "drop"
+  ) |>
+  filter(year < 2025) |>
+  filter(year > 2022) |>
+  filter(sex == "M") |>
+  mutate(year = as.integer(year)) |>
+  mutate(surv_next_year = as.numeric(surv_next_year)) |>
+  knitr::kable()
+```
+
+::: {.callout-note}
+Inter-annual survival probabilities between 2024 and 2025 are extremely low at high elevation because we did not exhaustively sample that population during 2025 due to logistical constraints.
+:::
+
+## Home range estimation
+
+We delineate individual home ranges by computing minimum convex polygons (MCP) via convex hulls (`chull`) using projected UTM coordinates. We retain individuals with at least 4 spatially-reference captures and filter out coordinate points $> 150\text{ m}$ from each individual's mean centroid to remove GPS artifacts and/or potential misidentifications. The resulting polygon coordinates are saved to `data/home_ranges.rds` and visualized with site-mean-centered coordinates to compare spatial extents across elevation sites.
+
+```{r estimate-home-ranges}
+#| code-fold: false
+
+home_ranges <- mr_data |>
+  filter(if_all(c(lat, lon, utm_x, utm_y), ~ !is.na(.x))) |>
+  group_by(site, id, sex) |>
+  mutate(
+    n_obs = n(),
+    mean_utm_x = mean(utm_x),
+    mean_utm_y = mean(utm_y),
+    dist_to_center = sqrt((utm_x - mean_utm_x)^2 + (utm_y - mean_utm_y)^2)
+  ) |>
+  filter(
+    dist_to_center <= 150,
+    n_obs >= 4
+  ) |>
+  slice(chull(utm_x, utm_y)) |>
+  ungroup() |>
+  select(site, id, sex, utm_x, utm_y)
+
+saveRDS(home_ranges, file = "data/home_ranges.rds")
+```
+
+```{r plot-lizard-home-ranges}
+#| code-summary: "Plot lizard home ranges"
+#| fig-width: 7
+#| fig-height: 4
+#| fig-align: center
+#| out-width: 80%
+
+home_ranges |>
+  group_by(site) |>
+  mutate(
+    x_dim = utm_x - mean(utm_x),
+    y_dim = utm_y - mean(utm_y)
+  ) |>
+  ungroup() |>
+  filter(sex == "M") |>
+  ggplot(aes(x = x_dim, y = y_dim, color = site)) +
+  geom_polygon(aes(group = id), linewidth = 0.5, fill = NA) +
+  labs(
+    x = "Distance (m, relative to site mean)",
+    y = "Distance (m, relative to site mean)"
+  ) +
+  theme_minimal() +
+  scale_color_manual(values = site_colors) +
+  facet_wrap(
+    ~site, 
+    scales = "free",
+    space = "free_x",
+    labeller = as_labeller(c(
+      HE = "High Elevation (HE)",
+      LE = "Low Elevation (LE)"
+    ))
+  ) +
+  scale_x_continuous(
+    breaks = seq(-400, 400, by = 100)
+  ) +
+  theme(
+    panel.border = element_rect(fill = NA, linewidth = 0.5),
+    axis.ticks = element_line(linewidth = 0.25),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 14),
+    strip.text = element_text(size = 14),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(
+      linewidth = 0.25,
+      color = "gray80"
+    ),
+    legend.position = "none"
+  )
+
+```
+
+::: {.callout-note}
+The "LE" population is divided between two neighbouring outcrops while the "HE" population extends across a continuous area.
+:::

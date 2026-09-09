@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>sceloporus-cols</title>
+<title>The ‘cost-of-living squeeze’ mediates survival of Sceloporus occidentalis – sceloporus-cols</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -71,6 +71,35 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -121,15 +150,22 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#vignettes-and-analyses" id="toc-vignettes-and-analyses" class="nav-link active" data-scroll-target="#vignettes-and-analyses">Vignettes and Analyses</a></li>
+  <li><a href="#datasets-included" id="toc-datasets-included" class="nav-link" data-scroll-target="#datasets-included">Datasets Included</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">sceloporus-cols</h1>
+<h1 class="title">The ‘cost-of-living squeeze’ mediates survival of <em>Sceloporus occidentalis</em></h1>
 </div>
 
 
@@ -146,10 +182,38 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>This is a Quarto website.</p>
-<p>To learn more about Quarto websites visit <a href="https://quarto.org/docs/websites" class="uri">https://quarto.org/docs/websites</a>.</p>
+<p>Welcome to the analytical and computational documentation for our study investigating how thermal environment and energetic demands—the <strong>cost-of-living squeeze (COLS)</strong>—influence the survival and spatial ecology of western fence lizards (<em>Sceloporus occidentalis</em>) across elevation gradients.</p>
+<p>This repository is structured as a reproducible research website containing the complete workflows, statistical analyses, spatial models, and biophysical simulations supporting the manuscript.</p>
+<hr>
+<section id="vignettes-and-analyses" class="level2">
+<h2 class="anchored" data-anchor-id="vignettes-and-analyses">Vignettes and Analyses</h2>
+<p>Each document in this repository addresses a specific component of the study:</p>
+<ul>
+<li><p><a href="./home-range-estimation.html">home-range-estimation.qmd</a><br>
+Processes mark-recapture data, evaluates capture saturation and sampling completeness across field seasons, estimates empirical inter-annual survival rates, and delineates individual Minimum Convex Polygon (MCP) home ranges across high- and low-elevation populations.</p></li>
+<li><p><a href="./resting-metabolic-rates.html">resting-metabolic-rates.qmd</a><br>
+Analyzes resting metabolic rates (RMR) across temperatures, body sizes, and populations to parameterize temperature-dependent energetic expenditure functions.</p></li>
+<li><p><a href="./feeding-demand.html">feeding-demand.qmd</a><br>
+Translates thermal and metabolic costs into daily and seasonal feeding demands, quantifying the intensity of the cost-of-living squeeze experienced by individuals.</p></li>
+<li><p><a href="./cols-survival.html">cols-survival.qmd</a><br>
+Tests the direct and interactive effects of metabolic feeding demands (COLS) on individual survival probabilities and population demographic rates.</p></li>
+<li><p><a href="./simulations-behavioral-thermoregulation.html">simulations-behavioral-thermoregulation.qmd</a><br>
+Implements biophysical and behavioral thermoregulation simulations to model operative environmental temperatures, activity windows, and thermoregulatory costs under current and projected thermal landscapes.</p></li>
+</ul>
+<hr>
+</section>
+<section id="datasets-included" class="level2">
+<h2 class="anchored" data-anchor-id="datasets-included">Datasets Included</h2>
+<p>The repository includes raw and processed data stored within the <a href="data">data</a> directory:</p>
+<ul>
+<li><p><a href="data/mr_data.rds">data/mr_data.rds</a><br>
+The compiled longitudinal mark-recapture dataset. Contains individual identities (<code>id</code>), capture dates (<code>year</code>, <code>doy</code>), sex, morphometric traits (snout-vent length <code>svl</code>, mass), and geographic coordinates (<code>lat</code>, <code>lon</code>, <code>utm_x</code>, <code>utm_y</code>).</p></li>
+<li><p><a href="data/home_ranges.rds">data/home_ranges.rds</a><br>
+Derived spatial polygon vertices computed via convex hulls (<code>chull</code>) for individuals with <span class="math inline">\(\ge 4\)</span> relocations after removing spatial outlier records (<span class="math inline">\(&gt; 150\text{ m}\)</span> from individual centroids). Used for comparative spatial extent analysis across elevations.</p></li>
+</ul>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
