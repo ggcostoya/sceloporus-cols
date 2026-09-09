@@ -1,0 +1,34 @@
+project:
+  title: "sceloporus-cols"
+  type: website
+  output-dir: docs
+
+website:
+  announcement:
+    dismissable: false
+    position: above-navbar # Keeps it pinned to the very top
+    content: "**The 'cost-of-living squeeze' mediates survival of *Sceloporus occidentalis***"
+  navbar:
+    title: false
+    left:
+      - href: index.qmd
+        text: Start here
+      - href: home-range-estimation.qmd
+        text: "Home range estimation"
+      - href: resting-metabolic-rates.qmd
+        text: "Resting metabolic rates"
+      - href: feeding-demand.qmd
+        text: "COLS as Feeding demand"
+      - href: cols-survival.qmd
+        text: "Effects of COLS on Survival"
+
+format:
+  html:
+    theme:
+      - cosmo
+      - brand
+    css: styles.css
+    toc: true
+
+
+
