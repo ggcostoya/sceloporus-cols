@@ -1,5 +1,293 @@
 ---
 title: "Resting metabolic rates"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
 ---
 
-About this site
+```{r r-setup, warning = FALSE, message = FALSE}
+#| code-summary: "R setup"
+
+# packages
+library(tidyverse)
+library(kableExtra)
+library(ggpubr)
+library(viridis)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+
+# define site and population colors
+site_colors <- c("HE" = "royalblue", "LE" = "darkorange")
+population_colors <- c(
+  "HE 2023" = "royalblue",
+  "LE 2023" = "darkorange",
+  "LE 2024" = "goldenrod4",
+  "TLE 2024" = "maroon"
+)
+```
+
+## Respirometry dataset structure
+
+```{r respirometry-dataset-structure}
+respirometry <- readRDS("data/respirometry.rds")
+head(respirometry)
+str(respirometry)
+```
+
+```{r example-respirometry-data}
+#| code-summary: "Example respirometry data for L089 in 2024"
+#| fig-align: "center"
+#| fig-width: 5
+#| fig-height: 4
+#| out-width: "66%"
+
+respirometry |>
+  mutate(site = paste(site, "E", sep = "")) |>
+  filter(year == 2024, id == "L089") |>
+  filter(trial_time < 15 * 60) |>
+  group_by(temp) |>
+  mutate(o2_scaled = o2 - max(o2)) |>
+  ggplot(aes(x = trial_time, y = o2_scaled)) +
+  geom_point(aes(color = temp, group = temp), alpha = 0.25) +
+  geom_smooth(method = "lm", aes(color = temp, group = temp)) +
+  scale_color_viridis(breaks = seq(10, 40, by = 10)) +
+  labs(
+    y = expression(Delta * O[2] ~ "(%)"),
+    x = "Trial Time (s)",
+    color = "Temp. (°C)"
+  ) +
+  theme_classic()
+```
+
+## Estimating Resting Metabolic Rates
+
+Below we transform the raw respirometry data into resting metabolic rates (RMR) and mass-specific RMR for each individual. This process involves fitting linear models to the oxygen consumption data over time, extracting the slope as the RMR, and then normalizing by body mass to obtain mass-specific RMR. Further, we control-correct for background fluctuations in oxygen consumption by subtracting the slope of the control measurements.
+
+```{r estimating-rmrs}
+rmr_data <- respirometry |>
+  group_by(site, year, id, svl, mass, temp) |>
+  summarise(
+    rmr = coefficients(lm(o2 ~ trial_time))[2] * 60, # ml min-1
+    rmr_control = coefficients(lm(o2_control ~ trial_time))[2] * 60 # ml min-1
+  ) |>
+  ungroup() |>
+  mutate(
+    rmr_mass_specific = - (rmr - rmr_control) / mass, # ml O2 min-1 g-1
+  ) |>
+  mutate(
+    rmr_mass_specific = ifelse(
+      rmr_mass_specific < 0, NA, # further removal of anomalus measurements
+      rmr_mass_specific
+    )
+  ) |>
+  mutate(log_rmr_mass_specific = log(rmr_mass_specific)) |>
+  select(
+    site, year, id, svl, mass, temp, rmr_mass_specific, log_rmr_mass_specific
+  )
+rmr_data
+```
+
+The raw RMR data looks as:
+
+:::{.panel-tabset}
+
+## Raw rates
+
+```{r plot-raw-rmr-data}
+#| code-summary: "Raw mass-specific RMR estimates"
+#| fig-align: "center"
+#| fig-width: 6
+#| fig-height: 5
+#| out-width: "66%"
+
+rmr_data |>
+  mutate(site = paste(site, "E", sep = "")) |>
+  filter(paste(site, year) != "HE 2024") |>
+  ggplot(aes(x = temp, y = rmr_mass_specific, color = paste(site, year))) +
+  geom_line(aes(group = id), linewidth = 1, alpha = 0.3) +
+  facet_wrap(
+    ~ paste(site, year),
+    axes = "all",
+    labeller = as_labeller(function(label) {
+      sprintf(
+        "<span style='color: %s;'>%s</span>",
+        population_colors[label],
+        label
+      )
+    })
+  ) +
+  scale_color_manual(
+    values = population_colors
+  ) +
+  theme_classic() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(),
+    strip.text = ggtext::element_markdown(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "none"
+  ) +
+  labs(
+    x = "Body temperature (°C)",
+    y = expression(paste("Mass-specific RMR (ml O"[2], " g"^{-1}, " min"^{-1}, ")")), # nolint
+  )
+```
+
+## Log-transformed rates
+
+```{r plot-log-transformed-rmr-data}
+#| code-summary: "Log-transformed mass-specific RMR estimates"
+#| fig-align: "center"
+#| fig-width: 6
+#| fig-height: 5
+#| out-width: "66%"
+
+rmr_data |>
+  mutate(site = paste(site, "E", sep = "")) |>
+  filter(paste(site, year) != "HE 2024") |>
+  ggplot(aes(x = temp, y = log_rmr_mass_specific, color = paste(site, year))) +
+  geom_line(aes(group = id), linewidth = 1, alpha = 0.3) +
+  facet_wrap(
+    ~ paste(site, year),
+    axes = "all",
+    labeller = as_labeller(function(label) {
+      sprintf(
+        "<span style='color: %s;'>%s</span>",
+        population_colors[label],
+        label
+      )
+    })
+  ) +
+  scale_color_manual(
+    values = population_colors
+  ) +
+  theme_classic() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(),
+    strip.text = ggtext::element_markdown(size = 12),
+    axis.text = element_text(size = 10),
+    legend.position = "none"
+  ) +
+  labs(
+    x = "Body temperature (°C)",
+    y = expression(paste("Mass-specific RMR (ml O"[2], " g"^{-1}, " min"^{-1}, ")")), # nolint
+  )
+```
+
+:::
+
+::: {.callout-note}
+The `TLE` population corresponds to individuals from outcrops adjacent to the main `LE` site collected during 2024 to explore seasonal variability in RMR
+:::
+
+## Missing RMR trials
+
+```{r plot-missing-rmr-trials}
+#| code-summary: "Visualize missing RMR trials"
+#| fig-align: "center"
+#| fig-width: 7
+#| fig-height: 7
+#| out-width: "66%"
+
+rmr_data |>
+  mutate(site = paste(site, "E", sep = "")) |>
+  filter(paste(site, year) != "HE 2024") |>
+  ggplot(aes(x = temp, y = id, fill = paste(site, year))) +
+  geom_tile(color = "lightgray") +
+  facet_wrap(~paste(site, year), scales = "free", ncol = 4) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  scale_fill_manual(
+    values = population_colors
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.y = element_text(size = 10),
+    legend.position = "none",
+    strip.text = element_text(size = 12, face = "bold"),
+    panel.border = element_rect(color = "black", fill = NA),
+    axis.ticks = element_line(color = "black"),
+    axis.line = element_blank(),
+    panel.grid = element_blank()
+  ) +
+  labs(
+    x = "Body temperature (°C)",
+    y = "Individual ID"
+  )
+
+```
+
+## Estimating intercepts and slopes of RMR
+
+### Model description
+
+#### Specification
+
+We modeled the relationship between log mass-specific metabolic rate ($R$) and body temperature ($T$) using a hierarchical Bayesian framework to account for the nested structure of our data. Specifically, we modeled $R$ as a linear function of $T$ with individual-specific intercepts and slopes:
+
+$$R_{i,j} \sim \mathcal{N}(\alpha_j + \beta_j \cdot T_{i,j}, \sigma)$$
+
+Where $R_{i,j}$ is the log mass-specific metabolic rate for the $i$-th measurement of the $j$-th individual, $\alpha_j$ is the individual-specific intercept, $\beta_j$ is the individual-specific slope (thermal sensitivity), and $\sigma$ is the residual standard deviation.Because $T$ was centered at 25°C, $\alpha_j$ represents the log mass-specific metabolic rate of individual $j$ at that reference temperature.
+
+In turn, the individual-specific parameters $\alpha_j$ and $\beta_j$ were modeled as being drawn from population-level distributions:
+
+$$\alpha_j = \alpha + \alpha_S S_j + \alpha_Y Y_j + \alpha_M M_j + \eta_{\alpha,j}$$
+$$\beta_j = \beta + \beta_S S_j + \beta_Y Y_j + \beta_M M_j + \eta_{\beta,j}$$
+
+Where $S_j$, $Y_j$, and $M_j$ represent the site, year, and body mass of individual $j$, respectively, and $\eta_{\alpha,j}$ and $\eta_{\beta,j}$ are individual-level deviations from the population-level effects.
+
+The individual-level deviations $\eta_{\alpha,j}$ and $\eta_{\beta,j}$ were modeled as being drawn from a multivariate normal distribution to account for the correlation between an individual's baseline metabolic rate and its thermal sensitivity:
+
+$$\begin{bmatrix} \eta_{\alpha,j} \\ \eta_{\beta,j} \end{bmatrix} \sim \text{MVN} \left( \mathbf{0}, \mathbf{\Sigma} \right)$$
+
+Where $\mathbf{0}$ is a vector of means and $\mathbf{\Sigma}$ is the covariance matrix, defined as:
+
+$$\mathbf{\Sigma} = \begin{bmatrix} \tau_{\alpha}^2 & \rho\tau_{\alpha}\tau_{\beta} \\ \rho\tau_{\alpha}\tau_{\beta} & \tau_{\beta}^2 \end{bmatrix}$$
+
+Where $\tau_{\alpha}$ and $\tau_{\beta}$ represent the among-individual standard deviations for the intercept and slope, respectively, and $\rho$ is the correlation coefficient between them.
+
+#### Computational implementation
+
+To ensure efficient sampling and avoid issues related to the geometry of the posterior distribution, we implemented the model using a non-centered parameterization. Instead of sampling the individual-level parameters $\alpha_j$ and $\beta_j$ directly from their respective group-level distributions, we treated them as transformed parameters. Specifically, we defined the vector of individual parameters $\mathbf{\Theta}_j = [\alpha_j, \beta_j]^T$ as:
+
+$$\mathbf{\Theta}_j = \boldsymbol{\mu}_j + \text{diag}(\boldsymbol{\tau}) \mathbf{L}_{\Omega} \mathbf{z}_j$$
+
+Where:
+
+* $\boldsymbol{\mu}_j$ is the vector of population-level predicted means for the $j$-th individual.
+
+* $\boldsymbol{\tau}$ is the vector of among-individual standard deviations ($\tau_{\alpha}, \tau_{\beta}$).
+
+* $\mathbf{L}_{\Omega}$ is the Cholesky factor of the correlation matrix, representing the dependency between intercepts and slopes.
+
+* $\mathbf{z}_j$ is a vector of standardized deviations sampled from a unit normal distribution, $\mathbf{z}_j \sim \mathcal{N}(0, 1)$.
+
+#### Prior specification
+
+We employed weakly informative priors for all model parameters to provide regularizing effects while ensuring that the posterior distributions remained primarily driven by the empirical data. We chose to center the priors for the global intercept ($\alpha$) and the effect sizes of site, year, and body mass ($\alpha_S, \alpha_Y, \alpha_M, \beta_S, \beta_Y, \beta_M$) at zero ($\mathcal{N}(0, 0.5)$). We adopted this approach as a conservative baseline assumption, reflecting a null expectation of no effect for environmental or physical covariates in the absence of strong evidence.
+
+For the global thermal sensitivity parameter ($\beta$), we applied a $\mathcal{N}(0.1, 0.5)$ prior truncated at zero. We justified this truncation based on the fundamental biological law that ectotherm metabolic rate increases with body temperature; the standard deviation of 0.5 was selected to allow the model to explore a wide range of biologically plausible thermal sensitivities.
+
+Regarding the variance components, we assigned $\mathcal{N}(0, 0.5)$ priors (constrained to positive values) to the residual standard deviation ($\sigma$) and the among-individual standard deviations ($\tau_{\alpha}, \tau_{\beta}$). To model the dependency between individual-level intercepts and slopes, we applied an $\text{LKJ}(2)$ prior to the Cholesky factor of the correlation matrix ($\mathbf{L}_{\Omega}$). We selected a shape parameter of 2 to provide a weakly informative prior that is intentionally skeptical of extreme correlations (near $\pm 1$), thereby favoring a more conservative estimate of the relationship between an individual’s baseline metabolism and its thermal sensitivity.
+
+#### Inference and diagnostics
+
+### Code implementation
+
+#### `stan` code and model compilation
+
+#### Data preparation
+
+#### Model fitting
+
+#### Model diagnostics
+
+### Extracting individual-level paramters
+
+## Seasonal plasticity in RMR

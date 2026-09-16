@@ -1,5 +1,5 @@
 ---
-title: "The 'cost-of-living squeeze' mediates survival of *Sceloporus occidentalis*"
+title: "The 'cost-of-living squeeze' mediates survival in a desert ectotherm"
 ---
 
 Welcome to the analytical and computational documentation for our study investigating how thermal environment and energetic demands—the **cost-of-living squeeze (COLS)**—influence the survival and spatial ecology of western fence lizards (*Sceloporus occidentalis*) across elevation gradients.
@@ -12,20 +12,16 @@ This repository is structured as a reproducible research website containing the 
 
 Each document in this repository addresses a specific component of the study:
 
-- [home-range-estimation.qmd](home-range-estimation.qmd)  
-  Processes mark-recapture data, evaluates capture saturation and sampling completeness across field seasons, estimates empirical inter-annual survival rates, and delineates individual Minimum Convex Polygon (MCP) home ranges across high- and low-elevation populations.
+- [**Home Range Estimation**](home-range-estimation.qmd): Processes mark-recapture data, evaluates capture saturation and sampling completeness across field seasons, estimates empirical inter-annual survival rates, and delineates individual Minimum Convex Polygon (MCP) home ranges across high- and low-elevation populations.
 
-- [resting-metabolic-rates.qmd](resting-metabolic-rates.qmd)  
-  Analyzes resting metabolic rates (RMR) across temperatures, body sizes, and populations to parameterize temperature-dependent energetic expenditure functions.
+- [**Resting Metabolic Rates**](resting-metabolic-rates.qmd): Analyzes resting metabolic rates (RMR) across temperatures, body sizes, and populations to parameterize temperature-dependent energetic expenditure functions.
 
-- [feeding-demand.qmd](feeding-demand.qmd)  
-  Translates thermal and metabolic costs into daily and seasonal feeding demands, quantifying the intensity of the cost-of-living squeeze experienced by individuals.
+- [**Behavioral Thermoregulation Simulations**](simulations-behavioral-thermoregulation.qmd): Implements biophysical and behavioral thermoregulation simulations to model operative environmental temperatures, activity windows, and thermoregulatory costs under current and projected thermal landscapes.
 
-- [cols-survival.qmd](cols-survival.qmd)  
-  Tests the direct and interactive effects of metabolic feeding demands (COLS) on individual survival probabilities and population demographic rates.
+- [**COLS as Feeding Demand**](feeding-demand.qmd): Translates thermal and metabolic costs into daily and seasonal feeding demands, quantifying the intensity of the cost-of-living squeeze experienced by individuals.
 
-- [simulations-behavioral-thermoregulation.qmd](simulations-behavioral-thermoregulation.qmd)  
-  Implements biophysical and behavioral thermoregulation simulations to model operative environmental temperatures, activity windows, and thermoregulatory costs under current and projected thermal landscapes.
+- [**Effects of COLS on Survival**](cols-survival.qmd): Tests the direct and interactive effects of metabolic feeding demands (COLS) on individual survival probabilities and population demographic rates.
+
 
 ---
 
@@ -38,3 +34,8 @@ The repository includes raw and processed data stored within the [data](data) di
 
 - [data/home_ranges.rds](data/home_ranges.rds)  
   Derived spatial polygon vertices computed via convex hulls (`chull`) for individuals with $\ge 4$ relocations after removing spatial outlier records ($> 150\text{ m}$ from individual centroids). Used for comparative spatial extent analysis across elevations.
+
+- [data/respirometry.rds](data/respirometry.rds)  
+  Respirometry data containing resting metabolic rate measurements across temperatures, body sizes, and populations. Used to parameterize temperature-dependent energetic expenditure functions.
+
+- 

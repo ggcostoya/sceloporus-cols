@@ -42,7 +42,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ffab4617c9faea3d3cda282a4ee3b35a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-fd2bcf50758cdb83ae4205f7b00f7406.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -79,8 +79,8 @@ ul.task-list li input[type="checkbox"] {
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <div id="quarto-announcement" data-announcement-id="95e253c5dd33797309e2d96deb81a764" class="alert alert-primary hidden"><div class="quarto-announcement-content">
-<p><strong>The ‘cost-of-living squeeze’ mediates survival of <em>Sceloporus occidentalis</em></strong></p>
+    <div id="quarto-announcement" data-announcement-id="6f31bc353947808a554a7c83ad8ed97e" class="alert alert-primary hidden"><div class="quarto-announcement-content">
+<p><strong>The ‘cost-of-living squeeze’ mediates survival in a desert ectotherm</strong></p>
 </div></div>
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
@@ -103,12 +103,21 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Resting metabolic rates</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link active" href="./simulations-behavioral-thermoregulation.html" aria-current="page"> 
+<span class="menu-text">Behavioral thermoregulation simulations</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./feeding-demand.html"> 
 <span class="menu-text">COLS as Feeding demand</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./cols-survival.html"> 
 <span class="menu-text">Effects of COLS on Survival</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/ggcostoya/sceloporus-cols"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -121,8 +130,35 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#operative-temperature-models" id="toc-operative-temperature-models" class="nav-link active" data-scroll-target="#operative-temperature-models">Operative temperature models</a>
+  <ul class="collapse">
+  <li><a href="#deployment-protocol" id="toc-deployment-protocol" class="nav-link" data-scroll-target="#deployment-protocol">Deployment protocol</a></li>
+  <li><a href="#dataset-structure" id="toc-dataset-structure" class="nav-link" data-scroll-target="#dataset-structure">Dataset structure</a></li>
+  <li><a href="#generating-otm-specific-splines" id="toc-generating-otm-specific-splines" class="nav-link" data-scroll-target="#generating-otm-specific-splines">Generating OTM-specific splines</a></li>
+  </ul></li>
+  <li><a href="#aerial-thermal-imagery" id="toc-aerial-thermal-imagery" class="nav-link" data-scroll-target="#aerial-thermal-imagery">Aerial thermal imagery</a>
+  <ul class="collapse">
+  <li><a href="#protocol" id="toc-protocol" class="nav-link" data-scroll-target="#protocol">Protocol</a></li>
+  <li><a href="#data-processing" id="toc-data-processing" class="nav-link" data-scroll-target="#data-processing">Data processing</a></li>
+  </ul></li>
+  <li><a href="#throne-workflow" id="toc-throne-workflow" class="nav-link" data-scroll-target="#throne-workflow"><code>throne</code> workflow</a>
+  <ul class="collapse">
+  <li><a href="#correcting-aerial-thermal-imagery" id="toc-correcting-aerial-thermal-imagery" class="nav-link" data-scroll-target="#correcting-aerial-thermal-imagery">Correcting aerial thermal imagery</a></li>
+  <li><a href="#matching-flight-to-otm-data" id="toc-matching-flight-to-otm-data" class="nav-link" data-scroll-target="#matching-flight-to-otm-data">Matching flight to OTM data</a></li>
+  </ul></li>
+  <li><a href="#home-range-level-thermal-environments" id="toc-home-range-level-thermal-environments" class="nav-link" data-scroll-target="#home-range-level-thermal-environments">Home-range level thermal environments</a></li>
+  <li><a href="#behavioral-thermoregulation-simulations" id="toc-behavioral-thermoregulation-simulations" class="nav-link" data-scroll-target="#behavioral-thermoregulation-simulations">Behavioral thermoregulation simulations</a>
+  <ul class="collapse">
+  <li><a href="#simulation-structure" id="toc-simulation-structure" class="nav-link" data-scroll-target="#simulation-structure">Simulation structure</a></li>
+  <li><a href="#code-implementation" id="toc-code-implementation" class="nav-link" data-scroll-target="#code-implementation">Code implementation</a></li>
+  </ul></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -146,9 +182,50 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>About this site</p>
+<section id="operative-temperature-models" class="level2">
+<h2 class="anchored" data-anchor-id="operative-temperature-models">Operative temperature models</h2>
+<section id="deployment-protocol" class="level3">
+<h3 class="anchored" data-anchor-id="deployment-protocol">Deployment protocol</h3>
+</section>
+<section id="dataset-structure" class="level3">
+<h3 class="anchored" data-anchor-id="dataset-structure">Dataset structure</h3>
+</section>
+<section id="generating-otm-specific-splines" class="level3">
+<h3 class="anchored" data-anchor-id="generating-otm-specific-splines">Generating OTM-specific splines</h3>
+</section>
+</section>
+<section id="aerial-thermal-imagery" class="level2">
+<h2 class="anchored" data-anchor-id="aerial-thermal-imagery">Aerial thermal imagery</h2>
+<section id="protocol" class="level3">
+<h3 class="anchored" data-anchor-id="protocol">Protocol</h3>
+</section>
+<section id="data-processing" class="level3">
+<h3 class="anchored" data-anchor-id="data-processing">Data processing</h3>
+</section>
+</section>
+<section id="throne-workflow" class="level2">
+<h2 class="anchored" data-anchor-id="throne-workflow"><code>throne</code> workflow</h2>
+<section id="correcting-aerial-thermal-imagery" class="level3">
+<h3 class="anchored" data-anchor-id="correcting-aerial-thermal-imagery">Correcting aerial thermal imagery</h3>
+</section>
+<section id="matching-flight-to-otm-data" class="level3">
+<h3 class="anchored" data-anchor-id="matching-flight-to-otm-data">Matching flight to OTM data</h3>
+</section>
+</section>
+<section id="home-range-level-thermal-environments" class="level2">
+<h2 class="anchored" data-anchor-id="home-range-level-thermal-environments">Home-range level thermal environments</h2>
+</section>
+<section id="behavioral-thermoregulation-simulations" class="level2">
+<h2 class="anchored" data-anchor-id="behavioral-thermoregulation-simulations">Behavioral thermoregulation simulations</h2>
+<section id="simulation-structure" class="level3">
+<h3 class="anchored" data-anchor-id="simulation-structure">Simulation structure</h3>
+</section>
+<section id="code-implementation" class="level3">
+<h3 class="anchored" data-anchor-id="code-implementation">Code implementation</h3>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

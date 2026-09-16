@@ -2,4 +2,30 @@
 title: "Simulations of behavioral thermoregulation"
 ---
 
-About this site
+## Operative temperature models 
+
+### Deployment protocol
+
+### Dataset structure
+
+### Generating OTM-specific splines
+
+## Aerial thermal imagery
+
+### Protocol
+
+### Data processing
+
+## `throne` workflow
+
+### Correcting aerial thermal imagery
+
+### Matching flight to OTM data
+
+## Home-range level thermal environments
+
+## Behavioral thermoregulation simulations
+
+### Simulation structure
+
+### Code implementation

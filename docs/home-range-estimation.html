@@ -77,7 +77,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ffab4617c9faea3d3cda282a4ee3b35a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-fd2bcf50758cdb83ae4205f7b00f7406.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -108,6 +108,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="site_libs/lightable-0.0.1/lightable.css" rel="stylesheet">
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -146,8 +148,8 @@ window.Quarto = {
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <div id="quarto-announcement" data-announcement-id="95e253c5dd33797309e2d96deb81a764" class="alert alert-primary hidden"><div class="quarto-announcement-content">
-<p><strong>The ‘cost-of-living squeeze’ mediates survival of <em>Sceloporus occidentalis</em></strong></p>
+    <div id="quarto-announcement" data-announcement-id="6f31bc353947808a554a7c83ad8ed97e" class="alert alert-primary hidden"><div class="quarto-announcement-content">
+<p><strong>The ‘cost-of-living squeeze’ mediates survival in a desert ectotherm</strong></p>
 </div></div>
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
@@ -170,12 +172,21 @@ window.Quarto = {
 <span class="menu-text">Resting metabolic rates</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./simulations-behavioral-thermoregulation.html"> 
+<span class="menu-text">Behavioral thermoregulation simulations</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./feeding-demand.html"> 
 <span class="menu-text">COLS as Feeding demand</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./cols-survival.html"> 
 <span class="menu-text">Effects of COLS on Survival</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/ggcostoya/sceloporus-cols"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -422,7 +433,7 @@ window.Quarto = {
 <p>Below we table the inter-annual survival probabilities for adult males across sites and years.</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Table inter-annual survival probabilities</summary>
+<summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>mr_data_adults <span class="sc">|&gt;</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(site, id, sex, year) <span class="sc">|&gt;</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>() <span class="sc">|&gt;</span></span>
@@ -438,48 +449,54 @@ window.Quarto = {
 <span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
 <span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">surv_next_year =</span> <span class="fu">mean</span>(surv_next_year), <span class="at">.groups =</span> <span class="st">"drop"</span></span>
 <span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">&lt;</span> <span class="dv">2025</span>) <span class="sc">|&gt;</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">&gt;</span> <span class="dv">2022</span>) <span class="sc">|&gt;</span></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(sex <span class="sc">==</span> <span class="st">"M"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">year =</span> <span class="fu">as.integer</span>(year)) <span class="sc">|&gt;</span></span>
-<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">surv_next_year =</span> <span class="fu">as.numeric</span>(surv_next_year)) <span class="sc">|&gt;</span></span>
-<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">surv_next_year =</span> <span class="fu">round</span>(surv_next_year, <span class="dv">2</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">&lt;</span> <span class="dv">2025</span>) <span class="sc">|&gt;</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">&gt;</span> <span class="dv">2022</span>) <span class="sc">|&gt;</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(sex <span class="sc">==</span> <span class="st">"M"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>sex) <span class="sc">|&gt;</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">year =</span> <span class="fu">as.integer</span>(year)) <span class="sc">|&gt;</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">surv_next_year =</span> <span class="fu">as.numeric</span>(surv_next_year)) <span class="sc">|&gt;</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">Site =</span> site,</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">Year =</span> year,</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Inter-annual survival probability</span><span class="st">`</span> <span class="ot">=</span> surv_next_year</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>() <span class="sc">|&gt;</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_styling</span>(</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">full_width =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">font_size =</span> <span class="dv">16</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
-<table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<th style="text-align: left;">site</th>
-<th style="text-align: left;">sex</th>
-<th style="text-align: right;">year</th>
-<th style="text-align: right;">surv_next_year</th>
-</tr>
-</thead>
+<table quarto-disable-processing="true" class="table" style="font-size: 16px; width: auto !important; margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Site </th>
+   <th style="text-align:right;"> Year </th>
+   <th style="text-align:right;"> Inter-annual survival probability </th>
+  </tr>
+ </thead>
 <tbody>
-<tr class="odd">
-<td style="text-align: left;">HE</td>
-<td style="text-align: left;">M</td>
-<td style="text-align: right;">2023</td>
-<td style="text-align: right;">0.2553191</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">HE</td>
-<td style="text-align: left;">M</td>
-<td style="text-align: right;">2024</td>
-<td style="text-align: right;">0.0769231</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">LE</td>
-<td style="text-align: left;">M</td>
-<td style="text-align: right;">2023</td>
-<td style="text-align: right;">0.3571429</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">LE</td>
-<td style="text-align: left;">M</td>
-<td style="text-align: right;">2024</td>
-<td style="text-align: right;">0.1707317</td>
-</tr>
+  <tr>
+   <td style="text-align:left;"> HE </td>
+   <td style="text-align:right;"> 2023 </td>
+   <td style="text-align:right;"> 0.26 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> HE </td>
+   <td style="text-align:right;"> 2024 </td>
+   <td style="text-align:right;"> 0.08 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> LE </td>
+   <td style="text-align:right;"> 2023 </td>
+   <td style="text-align:right;"> 0.36 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> LE </td>
+   <td style="text-align:right;"> 2024 </td>
+   <td style="text-align:right;"> 0.17 </td>
+  </tr>
 </tbody>
 </table>
 </div>
@@ -494,7 +511,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Inter-annual survival probabilities between 2024 and 2025 are extremely low at high elevation because we did not exhaustively sample that population during 2025 due to logistical constraints.</p>
+<p>Inter-annual survival probabilities from 2024 to 2025 are extremely low at high elevation because we did not exhaustively sample that population during 2025 due to logistical constraints.</p>
 </div>
 </div>
 </section>
@@ -586,7 +603,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The “LE” population is divided between two neighbouring outcrops while the “HE” population extends across a continuous area.</p>
+<p>The <code>LE</code> population is divided between two neighbouring outcrops while the <code>HE</code> population extends across a continuous area.</p>
 </div>
 </div>
 

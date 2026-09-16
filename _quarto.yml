@@ -7,7 +7,7 @@ website:
   announcement:
     dismissable: false
     position: above-navbar # Keeps it pinned to the very top
-    content: "**The 'cost-of-living squeeze' mediates survival of *Sceloporus occidentalis***"
+    content: "**The 'cost-of-living squeeze' mediates survival in a desert ectotherm**"
   navbar:
     title: false
     left:
@@ -17,16 +17,20 @@ website:
         text: "Home range estimation"
       - href: resting-metabolic-rates.qmd
         text: "Resting metabolic rates"
+      - href: simulations-behavioral-thermoregulation.qmd
+        text: "Behavioral thermoregulation simulations"
       - href: feeding-demand.qmd
         text: "COLS as Feeding demand"
       - href: cols-survival.qmd
         text: "Effects of COLS on Survival"
+      - icon: github
+        href: https://github.com/ggcostoya/sceloporus-cols
+        aria-label: GitHub
 
 format:
   html:
     theme:
-      - cosmo
-      - brand
+      - flatly
     css: styles.css
     toc: true
     lightbox: true

@@ -1,6 +1,7 @@
 {
   "resting-metabolic-rates.qmd": {
-    "resting-metabolic-rates.html": "872a9aea"
+    "resting-metabolic-rates.html": "872a9aea",
+    "resting-metabolic-rates.tex": "c68f335c"
   },
   "feeding-demand.qmd": {
     "feeding-demand.html": "0334420b"
@@ -15,6 +16,7 @@
     "simulations-behavioral-thermoregulation.html": "43f344a4"
   },
   "home-range-estimation.qmd": {
-    "home-range-estimation.html": "fa159088"
+    "home-range-estimation.html": "fa159088",
+    "home-range-estimation.tex": "19c4e69d"
   }
 }

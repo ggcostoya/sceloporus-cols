@@ -177,7 +177,6 @@ mr_data_adults |>
 Below we table the inter-annual survival probabilities for adult males across sites and years.
 
 ```{r table-inter-annual-survival-probabilities}
-#| code-summary: "Table inter-annual survival probabilities"
 mr_data_adults |>
   select(site, id, sex, year) |>
   distinct() |>
@@ -193,16 +192,27 @@ mr_data_adults |>
   summarise(
     surv_next_year = mean(surv_next_year), .groups = "drop"
   ) |>
+  mutate(surv_next_year = round(surv_next_year, 2)) |>
   filter(year < 2025) |>
   filter(year > 2022) |>
   filter(sex == "M") |>
+  select(-sex) |>
   mutate(year = as.integer(year)) |>
   mutate(surv_next_year = as.numeric(surv_next_year)) |>
-  knitr::kable()
+  rename(
+    Site = site,
+    Year = year,
+    `Inter-annual survival probability` = surv_next_year
+  ) |>
+  knitr::kable() |>
+  kableExtra::kable_styling(
+    full_width = FALSE,
+    font_size = 16
+  )
 ```
 
 ::: {.callout-note}
-Inter-annual survival probabilities between 2024 and 2025 are extremely low at high elevation because we did not exhaustively sample that population during 2025 due to logistical constraints.
+Inter-annual survival probabilities from 2024 to 2025 are extremely low at high elevation because we did not exhaustively sample that population during 2025 due to logistical constraints.
 :::
 
 ## Home range estimation
@@ -286,5 +296,5 @@ home_ranges |>
 ```
 
 ::: {.callout-note}
-The "LE" population is divided between two neighbouring outcrops while the "HE" population extends across a continuous area.
+The `LE` population is divided between two neighbouring outcrops while the `HE` population extends across a continuous area.
 :::
