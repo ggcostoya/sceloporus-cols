@@ -30,7 +30,7 @@ website:
 format:
   html:
     theme:
-      - flatly
+      - cosmo
     css: styles.css
     toc: true
     lightbox: true

@@ -2,13 +2,150 @@
 title: "Simulations of behavioral thermoregulation"
 ---
 
+```{r r-setup, warning = FALSE, message = FALSE}
+#| code-summary: "R setup"
+#| code-fold: true
+
+# packages
+library(tidyverse)
+library(kableExtra)
+library(ggpubr)
+library(viridis)
+library(throne)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+
+# define site and population colors
+site_colors <- c("HE" = "royalblue", "LE" = "darkorange")
+population_colors <- c(
+  "HE 2023" = "royalblue",
+  "LE 2023" = "darkorange",
+  "LE 2024" = "goldenrod4",
+  "TLE 2024" = "maroon"
+)
+```
+
 ## Operative temperature models 
 
 ### Deployment protocol
 
+We characterized the thermal environments available to lizards using 3D-printed OTMs designed to mimic the biophysical properties of *S. occidentalis*. We previously calibrated our OTMs against live western fence lizards under natural conditions ([Alujevic et al. 2023](https://www.sciencedirect.com/science/article/abs/pii/S0306456523003030)). We 3D-scanned a museum specimen to create a standardized `.stl` file, which was printed using acrylonitrile butadiene styrene (ABS) with a 2-mm wall thickness. Models were painted to match the average reflectance of the lizards from our study populations. Each OTM was equipped with a Thermochron iButton (DS1821G-F5, Embedded Data Systems, Lawrenceburg, KY, USA) to record internal temperatures. To maximize temporal resolution and avoid data aliasing, we programmed loggers to record every 50 minutes and staggered start times to ensure a continuous representation of the thermal environment. 
+
+We deployed 90 OTMs per site and year (10 per site sector) to capture the full breadth of thermal variation. Within each sector, OTMs were positioned across a representative suite of microhabitats. Four were placed on rock faces (one per cardinal direction), one in a tree, one in a shrub, one in a crevice, one in open ground, and two in haphazardly selected locations. OTMs were secured using mounting putty or cable ties. Due to memory constraints, loggers were recovered, downloaded, and redeployed to their original positions 1–2 times during the activity seasons, with total off-site time kept under 48 hours to minimize gaps. 
+
 ### Dataset structure
 
+Below we present the structure of our operative temeprature model dataset. Each row corresponds to a unique operative temperature measurement
+
+```{r dataset-structure}
+otms <- readRDS("data/otms.rds")
+otms
+str(otms)
+```
+
+On average, the `HE` site experienced substantially cooler temperatures than the `LE` site across years. 2024 was, on average, slightly warmer than 2023 particularly driven by an absolrmally cold April and May in 2023.
+
+```{r summary-table-otms}
+#| code-fold: true
+kable(
+  otms |>
+    group_by(site, year) |>
+    summarise(
+      Mean = round(mean(op_temp, na.rm = TRUE), 2),
+      Max = round(max(op_temp, na.rm = TRUE), 2),
+      Min = round(min(op_temp, na.rm = TRUE), 2),
+      SD = round(sd(op_temp, na.rm = TRUE), 2),
+      Range = round(Max - Min, 2),
+      `Recording Start` = min(doy, na.rm = TRUE),
+      `Recording End` = max(doy, na.rm = TRUE)
+    ),
+  align = "c",
+  booktabs = TRUE
+ ) |>
+  kable_styling(full_width = FALSE) |>
+  column_spec(c(1, 2), bold = TRUE)
+
+```
+
+```{r plot-otms}
+#| code-summary: "Plot mean operative temperature by site and year"
+#| code-fold: true
+#| fig.width: 8
+#| fig.height: 3
+
+otms |>
+  group_by(site, year, doy) |>
+  summarise(mean_temp = mean(op_temp, na.rm = TRUE)) |>
+  mutate(pop = paste(site, year)) |>
+  ggplot(aes(x = doy, y = mean_temp, color = pop)) +
+  geom_line(linewidth = 1.25, alpha = 0.8) +
+  scale_color_manual(values = population_colors) +
+  scale_x_continuous(
+    breaks = seq(1, 12, by = 1) * 30,
+    labels = month.abb
+  ) +
+  labs(
+    x = "Date", y = "Mean Operative Temperature (°C)", color = "Population"
+  )
+
+```
+
 ### Generating OTM-specific splines
+
+Following the pipeline outlined by the `throne` R package (see [throne documentation](https://ggcostoya.github.io/throne/articles/rnp_otms_data_gen_otm_splines.html)) we generate OTM and day-of-year (`doy`) specific splines
+
+```{r generate-otm-splines, eval = FALSE}
+#| code-fold: false
+
+## Note: This code chunk is not evaluated by default to prevent long
+## computation times, but it can be ran locally. The object `otm_splines`
+## is stored in the `data` folder.
+
+splines <- gen_otm_splines(otm_data = otms, knot_p = 0.05)
+saveRDS(splines, file = "data/splines.rds")
+```
+
+```{r load-otm-splines}
+#| code-fold: true
+#| code-summary: "Load OTM-specific splines"
+splines <- readRDS("data/splines.rds")
+splines
+```
+
+```{r show-spline-example}
+#| code-summary: "Show an example OTM-specific spline"
+#| code-fold: true
+#| fig.width: 6
+#| fig.height: 4
+#| fig.align: "center"
+#| out-width: "70%"
+
+id <- runif(1, min = 1, max = nrow(splines))
+prediction <- as.data.frame(predict(splines$spline[[id]]))
+colnames(prediction) <- c("mod", "pred")
+observation <- as.data.frame(splines$spline[[id]]$data)
+colnames(observation) <- c("mod", "obs", "z")
+prediction |>
+  left_join(observation, by = "mod") |>
+  ggplot(aes(x = mod)) +
+  geom_point(aes(y = obs, col = "obs"), size = 4) +
+  geom_line(aes(y = pred, col = "pred"), linewidth = 1.25) +
+  scale_color_manual(
+    values = c("obs" = "steelblue", "pred" = "firebrick"),
+    labels = c("obs" = "Observed", "pred" = "Predicted")
+  ) +
+  labs(
+    x = "Minute of the day",
+    y = "Operative temperature (°C)"
+  ) +
+  theme(
+    legend.title = element_blank()
+  )
+```
 
 ## Aerial thermal imagery
 

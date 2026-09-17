@@ -605,6 +605,7 @@ $$
 #| fig.width: 6
 #| fig.height: 4
 
+# define mrn
 rmr_params <- rmr_params |>
   mutate(
     scaled_intercept = (intercept - mean(intercept)) / sd(intercept),
@@ -612,6 +613,10 @@ rmr_params <- rmr_params |>
   ) |>
   mutate(mrn = (scaled_slope - scaled_intercept))
 
+# save rmr_data
+saveRDS(rmr_params, "data/rmr_params.rds")
+
+# plot
 rmr_params |>
   pivot_longer(
     cols = c(scaled_intercept, scaled_slope),
