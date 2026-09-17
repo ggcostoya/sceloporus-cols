@@ -211,6 +211,7 @@ window.Quarto = {
   <li><a href="#code-implementation" id="toc-code-implementation" class="nav-link" data-scroll-target="#code-implementation">Code implementation</a></li>
   <li><a href="#extracting-individual-level-paramters" id="toc-extracting-individual-level-paramters" class="nav-link" data-scroll-target="#extracting-individual-level-paramters">Extracting individual-level paramters</a></li>
   </ul></li>
+  <li><a href="#relationship-between-individual-level-intercepts-and-slopes" id="toc-relationship-between-individual-level-intercepts-and-slopes" class="nav-link" data-scroll-target="#relationship-between-individual-level-intercepts-and-slopes">Relationship between individual-level intercepts and slopes</a></li>
   <li><a href="#seasonal-plasticity-in-rmr" id="toc-seasonal-plasticity-in-rmr" class="nav-link" data-scroll-target="#seasonal-plasticity-in-rmr">Seasonal plasticity in RMR</a></li>
   </ul>
 </nav>
@@ -245,21 +246,24 @@ window.Quarto = {
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(viridis)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># options</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">dplyr.summarise.inform =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">knitr.table.html.attr =</span> <span class="st">"quarto-disable-processing=true"</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># define site and population colors</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>site_colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"HE"</span> <span class="ot">=</span> <span class="st">"royalblue"</span>, <span class="st">"LE"</span> <span class="ot">=</span> <span class="st">"darkorange"</span>)</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>population_colors <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"HE 2023"</span> <span class="ot">=</span> <span class="st">"royalblue"</span>,</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"LE 2023"</span> <span class="ot">=</span> <span class="st">"darkorange"</span>,</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"LE 2024"</span> <span class="ot">=</span> <span class="st">"goldenrod4"</span>,</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"TLE 2024"</span> <span class="ot">=</span> <span class="st">"maroon"</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rstan)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bayesplot)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidybayes)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># options</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">dplyr.summarise.inform =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">knitr.table.html.attr =</span> <span class="st">"quarto-disable-processing=true"</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co"># define site and population colors</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>site_colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"HE"</span> <span class="ot">=</span> <span class="st">"royalblue"</span>, <span class="st">"LE"</span> <span class="ot">=</span> <span class="st">"darkorange"</span>)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>population_colors <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"HE 2023"</span> <span class="ot">=</span> <span class="st">"royalblue"</span>,</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"LE 2023"</span> <span class="ot">=</span> <span class="st">"darkorange"</span>,</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"LE 2024"</span> <span class="ot">=</span> <span class="st">"goldenrod4"</span>,</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  <span class="st">"TLE 2024"</span> <span class="ot">=</span> <span class="st">"maroon"</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <section id="respirometry-dataset-structure" class="level2">
@@ -578,23 +582,559 @@ Note
 <h3 class="anchored" data-anchor-id="code-implementation">Code implementation</h3>
 <section id="stan-code-and-model-compilation" class="level4">
 <h4 class="anchored" data-anchor-id="stan-code-and-model-compilation"><code>stan</code> code and model compilation</h4>
+<p>Below is the <code>stan</code> code for the resting metabolic rates model:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode stan code-with-copy"><code class="sourceCode stan"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span>{</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span>&lt;<span class="kw">lower</span> = <span class="dv">0</span>&gt; N; <span class="co">// number of observations</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span>&lt;<span class="kw">lower</span> = <span class="dv">0</span>&gt; J; <span class="co">// number of individuals</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">array</span>[N] <span class="dt">int</span>&lt;<span class="kw">lower</span>=<span class="dv">1</span>, <span class="kw">upper</span>=J&gt; I; <span class="co">// individual IDs</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>[N] T; <span class="co">// temperature</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>[N] R; <span class="co">// log mass-specific RMR</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>[N] M; <span class="co">// mass or SVL</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>[J] S; <span class="co">// site indicator</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>[J] Y; <span class="co">// year indicator</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="kw">parameters</span>{</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// population-level fixed effects</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> a; <span class="co">// baseline intercept</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> &lt;<span class="kw">lower</span>=<span class="dv">0</span>&gt; b; <span class="co">// baseline slope truncated at 0</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> a_S; <span class="co">// effect of site on intercept</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> a_Y; <span class="co">// effect of year on intercept</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> a_M; <span class="co">// effect of body mass on intercept</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> b_S; <span class="co">// effect of site on slope</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> b_Y; <span class="co">// effect of year on slope</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> b_M; <span class="co">// effect of body mass on slope</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// individual-level random effects</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> &lt;<span class="kw">lower</span>=<span class="dv">0</span>&gt; Sigma; <span class="co">// residual error</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>&lt;<span class="kw">lower</span>=<span class="dv">0</span>&gt;[<span class="dv">2</span>] Tau; <span class="co">// SD of individual intercepts and slopes</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">cholesky_factor_corr</span>[<span class="dv">2</span>] L_Omega; <span class="co">// Cholesky factor of correlation matrix</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">matrix</span>[<span class="dv">2</span>, J] Z; <span class="co">// standardized individual effects</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a><span class="kw">transformed parameters</span> {</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>   <span class="co">// define matrices to hold individual parameters and predicted means</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">matrix</span>[<span class="dv">2</span>, J] Theta; <span class="co">// matrix to temporarily hold alpha_j and beta_j</span></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>    <span class="dt">matrix</span>[<span class="dv">2</span>, J] Mu; <span class="co">// matrix of predicted mean intercepts and slopes</span></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>    <span class="co">// compute indiividual parameters</span></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(j <span class="cf">in</span> <span class="dv">1</span>:J) {</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>        <span class="co">// intercept of lizard j</span></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>        Mu[<span class="dv">1</span>, j] = a + (a_S * S[j]) + (a_Y * Y[j]) + (a_M * M[j]);</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>        <span class="co">// slope of lizard j</span></span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>        Mu[<span class="dv">2</span>, j] = b + (b_S * S[j]) + (b_Y * Y[j]) + (b_M * M[j]);</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>    <span class="co">// implement non-centered parameterization</span></span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>    Theta = Mu + diag_pre_multiply(Tau, L_Omega) * Z;</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a><span class="kw">model</span>{</span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>    <span class="co">// priors</span></span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>    a ~ normal(<span class="dv">0</span>, <span class="fl">0.5</span>); <span class="co">// population-level intercept</span></span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>    b ~ normal(<span class="fl">0.1</span>, <span class="fl">0.5</span>); <span class="co">// population-level slope (informative prior)</span></span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>    a_S ~ normal(<span class="dv">0</span>, <span class="fl">0.5</span>); <span class="co">// effect of site on intercept</span></span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>    a_Y ~ normal(<span class="dv">0</span>, <span class="fl">0.5</span>); <span class="co">// effect of year on intercept</span></span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>    a_M ~ normal(<span class="dv">0</span>, <span class="fl">0.5</span>); <span class="co">// effect of body mass on intercept</span></span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>    b_S ~ normal(<span class="dv">0</span>, <span class="fl">0.5</span>); <span class="co">// effect of site on slope</span></span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>    b_Y ~ normal(<span class="dv">0</span>, <span class="fl">0.5</span>); <span class="co">// effect of year on slope</span></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>    b_M ~ normal(<span class="dv">0</span>, <span class="fl">0.5</span>); <span class="co">// effect of body mass on slope</span></span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>    Sigma ~ normal(<span class="dv">0</span>, <span class="fl">0.5</span>); <span class="co">// residual error</span></span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>    Tau ~ normal(<span class="dv">0</span>, <span class="fl">0.5</span>); <span class="co">// SD of individual intercepts and slopes</span></span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a>    L_Omega ~ lkj_corr_cholesky(<span class="dv">2</span>); <span class="co">// Cholesky factor of correlation matrix</span></span>
+<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a>    to_vector(Z) ~ normal(<span class="dv">0</span>, <span class="dv">1</span>); <span class="co">// standardized individual effects</span></span>
+<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a>    <span class="co">// likelihood</span></span>
+<span id="cb15-63"><a href="#cb15-63" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(n <span class="cf">in</span> <span class="dv">1</span>:N) {</span>
+<span id="cb15-64"><a href="#cb15-64" aria-hidden="true" tabindex="-1"></a>        R[n] ~ normal(Theta[<span class="dv">1</span>, I[n]] + Theta[<span class="dv">2</span>, I[n]] * T[n], Sigma);</span>
+<span id="cb15-65"><a href="#cb15-65" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb15-66"><a href="#cb15-66" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-67"><a href="#cb15-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-68"><a href="#cb15-68" aria-hidden="true" tabindex="-1"></a><span class="kw">generated quantities</span> {</span>
+<span id="cb15-69"><a href="#cb15-69" aria-hidden="true" tabindex="-1"></a>    <span class="co">// correlation matrix of intercept and slope</span></span>
+<span id="cb15-70"><a href="#cb15-70" aria-hidden="true" tabindex="-1"></a>    <span class="dt">corr_matrix</span>[<span class="dv">2</span>] Omega = multiply_lower_tri_self_transpose(L_Omega);</span>
+<span id="cb15-71"><a href="#cb15-71" aria-hidden="true" tabindex="-1"></a>    <span class="dt">real</span> Rho = Omega[<span class="dv">1</span>, <span class="dv">2</span>]; <span class="co">// correlation between intercept and slope</span></span>
+<span id="cb15-72"><a href="#cb15-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-73"><a href="#cb15-73" aria-hidden="true" tabindex="-1"></a>    <span class="co">// estimated individual interecepts and slopes</span></span>
+<span id="cb15-74"><a href="#cb15-74" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>[J] a_I = Theta[<span class="dv">1</span>, ]'; <span class="co">// individual intercepts</span></span>
+<span id="cb15-75"><a href="#cb15-75" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>[J] b_I = Theta[<span class="dv">2</span>, ]'; <span class="co">// individual slopes</span></span>
+<span id="cb15-76"><a href="#cb15-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-77"><a href="#cb15-77" aria-hidden="true" tabindex="-1"></a>    <span class="co">// posterior predictions and log-likelihood for model comparison</span></span>
+<span id="cb15-78"><a href="#cb15-78" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>[N] R_pred; <span class="co">// posterior predictions</span></span>
+<span id="cb15-79"><a href="#cb15-79" aria-hidden="true" tabindex="-1"></a>    <span class="dt">vector</span>[N] log_lik; <span class="co">// log-likelihood for each observation</span></span>
+<span id="cb15-80"><a href="#cb15-80" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(n <span class="cf">in</span> <span class="dv">1</span>:N) {</span>
+<span id="cb15-81"><a href="#cb15-81" aria-hidden="true" tabindex="-1"></a>        R_pred[n] = normal_rng(Theta[<span class="dv">1</span>, I[n]] + Theta[<span class="dv">2</span>, I[n]] * T[n], Sigma);</span>
+<span id="cb15-82"><a href="#cb15-82" aria-hidden="true" tabindex="-1"></a>        log_lik[n] = normal_lpdf(R[n] | Theta[<span class="dv">1</span>, I[n]] + Theta[<span class="dv">2</span>, I[n]] * T[n], Sigma);</span>
+<span id="cb15-83"><a href="#cb15-83" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb15-84"><a href="#cb15-84" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<p>We pre-compute the <code>stan</code> model and save it as an RDS file to facilitate faster model fitting in subsequent analyses.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Compile <code>stan</code> model and save as RDS file</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Note: This code chunk is not evaluated to avoid long rendering times.</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="do">## The compiled model is saved as an RDS file for later use.</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>rmr_model <span class="ot">&lt;-</span> <span class="fu">stan_model</span>(<span class="st">"stan/resting-metabolic-rates.stan"</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(rmr_model, <span class="st">"stan/resting-metabolic-rates.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
 </section>
 <section id="data-preparation" class="level4">
 <h4 class="anchored" data-anchor-id="data-preparation">Data preparation</h4>
+<p>We prepare the data for <code>stan</code> model fitting. This involves filtering out rows with missing values, recoding site information, and arranging the data by year and individual ID. We then create a list containing the necessary variables for the <code>stan</code> model. In particular, <code>T</code> (body temperature) is centered around 25 degrees and scaled by 10 as we measured four temperatures (10, 20, 30, 40) and 25 represents the middle point of the range. We also scale <code>log_rmr_mass_specific</code> and <code>mass</code> to have mean 0 and standard deviation 1.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># filter out rows with missing log_rmr_mass_specific values</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>rmr_model_data <span class="ot">&lt;-</span> rmr_data <span class="sc">|&gt;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(log_rmr_mass_specific)) <span class="sc">|&gt;</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">site =</span> <span class="fu">paste</span>(site, <span class="st">"E"</span>, <span class="at">sep =</span> <span class="st">""</span>),</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">site =</span> <span class="fu">ifelse</span>(site <span class="sc">==</span> <span class="st">"TLE"</span>, <span class="st">"LE"</span>, site) <span class="co"># recode TLE to LE</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(year, id)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co"># get list of unique site, year, individual combination</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>lizard_ids <span class="ot">&lt;-</span> rmr_model_data <span class="sc">|&gt;</span> <span class="fu">select</span>(id, site, year) <span class="sc">|&gt;</span> <span class="fu">distinct</span>()</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="co"># pepare data as list</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>rmr_stan_data <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">N =</span> <span class="fu">nrow</span>(rmr_model_data),</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">J =</span> <span class="fu">nrow</span>(lizard_ids),</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">I =</span> <span class="fu">as.numeric</span>(<span class="fu">as.factor</span>(<span class="fu">paste</span>(rmr_model_data<span class="sc">$</span>id, rmr_model_data<span class="sc">$</span>year))),</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">T =</span> (rmr_model_data<span class="sc">$</span>temp <span class="sc">-</span> <span class="dv">25</span>) <span class="sc">/</span> <span class="dv">10</span>,</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">R =</span> <span class="fu">as.numeric</span>(<span class="fu">scale</span>(rmr_model_data<span class="sc">$</span>log_rmr_mass_specific)),</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">M =</span> <span class="fu">as.numeric</span>(<span class="fu">scale</span>(rmr_model_data<span class="sc">$</span>mass)),</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">S =</span> <span class="fu">as.numeric</span>(<span class="fu">as.factor</span>(lizard_ids<span class="sc">$</span>site)),</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">Y =</span> <span class="fu">as.numeric</span>(<span class="fu">as.factor</span>(lizard_ids<span class="sc">$</span>year))</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 </section>
 <section id="model-fitting" class="level4">
 <h4 class="anchored" data-anchor-id="model-fitting">Model fitting</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Note: This code chunk is not evaluated to avoid long rendering times.</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># load compiled stan model</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>rmr_model <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"stan/resting-metabolic-rates.rds"</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co"># define function to provide initial values within prior constraints</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>inits <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">a =</span> <span class="sc">-</span><span class="dv">5</span>,</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">b =</span> <span class="fl">0.1</span>,</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">Sigma =</span> <span class="fl">0.5</span>,</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">Tau =</span> <span class="fu">c</span>(<span class="fl">0.2</span>, <span class="fl">0.2</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="co"># sample from model</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>rmr_model_fit <span class="ot">&lt;-</span> <span class="fu">sampling</span>(</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>  rmr_model,</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> rmr_stan_data,</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">iter =</span> <span class="dv">4000</span>,</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">warmup =</span> <span class="dv">2000</span>,</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>,</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">cores =</span> <span class="dv">4</span>,</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">init =</span> inits,</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">list</span>(<span class="at">adapt_delta =</span> <span class="fl">0.95</span>, <span class="at">max_treedepth =</span> <span class="dv">15</span>)</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a><span class="co"># save fitted model</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(rmr_model_fit, <span class="st">"raw_data/rmr_model_fit.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The object <code>rmr_model_fit</code> contains the fitted model results. It is saved locally in <code>raw_data/rmr_model_fit.rds</code> due to its large size. However, for transparency, the model summary and posterior distributions are shown below</p>
+</div>
+</div>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Show model fit</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load model fit</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>rmr_model_fit <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"raw_data/rmr_model_fit.rds"</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  rmr_model_fit,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"a_S"</span>, <span class="st">"a_Y"</span>, <span class="st">"a_M"</span>, <span class="st">"b_S"</span>, <span class="st">"b_Y"</span>, <span class="st">"b_M"</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Inference for Stan model: anon_model.
+4 chains, each with iter=4000; warmup=2000; thin=1; 
+post-warmup draws per chain=2000, total post-warmup draws=8000.
+
+     mean se_mean   sd  2.5%   25%   50%   75% 97.5% n_eff Rhat
+a   -0.36       0 0.14 -0.64 -0.45 -0.36 -0.26 -0.07  2705    1
+b    0.73       0 0.13  0.48  0.64  0.73  0.82  0.98  2854    1
+a_S  0.15       0 0.07  0.02  0.10  0.15  0.20  0.28  3025    1
+a_Y  0.06       0 0.07 -0.07  0.02  0.06  0.11  0.19  3807    1
+a_M -0.05       0 0.03 -0.11 -0.07 -0.05 -0.03  0.01  3080    1
+b_S  0.01       0 0.06 -0.11 -0.03  0.01  0.05  0.14  3450    1
+b_Y  0.00       0 0.06 -0.12 -0.04 -0.01  0.03  0.11  4151    1
+b_M  0.01       0 0.03 -0.04 -0.01  0.01  0.03  0.07  3209    1
+
+Samples were drawn using NUTS(diag_e) at Thu Sep 17 09:43:47 2026.
+For each parameter, n_eff is a crude measure of effective sample size,
+and Rhat is the potential scale reduction factor on split chains (at 
+convergence, Rhat=1).</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show model fit</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mcmc_areas</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  rmr_model_fit,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"a_S"</span>, <span class="st">"a_Y"</span>, <span class="st">"a_M"</span>, <span class="st">"b_S"</span>, <span class="st">"b_Y"</span>, <span class="st">"b_M"</span>),</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">prob =</span> <span class="fl">0.95</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Estimated value"</span>, <span class="at">y =</span> <span class="st">"Parameter"</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="resting-metabolic-rates_files/figure-html/show-model-fit-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="resting-metabolic-rates_files/figure-html/show-model-fit-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:66.0%"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<p>In the plot above the parameter correspondance is as follows:</p>
+<ul>
+<li><code>a</code> is <span class="math inline">\(\alpha\)</span>: Overall intercept</li>
+<li><code>b</code> is <span class="math inline">\(\beta\)</span>: Overall slope</li>
+<li><code>a_S</code> is <span class="math inline">\(\alpha_S\)</span>: Site-level intercept</li>
+<li><code>a_Y</code> is <span class="math inline">\(\alpha_Y\)</span>: Year-level intercept</li>
+<li><code>a_M</code> is <span class="math inline">\(\alpha_M\)</span>: Mass-level intercept</li>
+<li><code>b_S</code> is <span class="math inline">\(\beta_S\)</span>: Site-level slope</li>
+<li><code>b_Y</code> is <span class="math inline">\(\beta_Y\)</span>: Year-level slope</li>
+<li><code>b_M</code> is <span class="math inline">\(\beta_M\)</span>: Mass-level slope</li>
+</ul>
 </section>
 <section id="model-diagnostics" class="level4">
 <h4 class="anchored" data-anchor-id="model-diagnostics">Model diagnostics</h4>
+<p>In addition to the effective sample sizes (<code>n_eff</code>) and R-hat values (<code>Rhat</code>) of each parameter we present above, below we also assess model quality via 3 common diagnostics: trace plots, posterior predictive checks, and the examination of residuals.</p>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true" href="">HMC diagnostics</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false" href="">Trace plots</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-3" role="tab" aria-controls="tabset-2-3" aria-selected="false" href="">Posterior predictive checks</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-4-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-4" role="tab" aria-controls="tabset-2-4" aria-selected="false" href="">Examination of residuals</a></li></ul>
+<div class="tab-content">
+<div id="tabset-2-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-2-1-tab">
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">check_hmc_diagnostics</span>(rmr_model_fit)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Divergences:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>0 of 8000 iterations ended with a divergence.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Tree depth:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>0 of 8000 iterations saturated the maximum tree depth of 15.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Energy:</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>E-BFMI indicated no pathological behavior.</code></pre>
+</div>
+</div>
+</div>
+<div id="tabset-2-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-2-tab">
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mcmc_trace</span>(</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  rmr_model_fit,</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">pars =</span> <span class="fu">c</span>(<span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"a_S"</span>, <span class="st">"a_Y"</span>, <span class="st">"a_M"</span>, <span class="st">"b_S"</span>, <span class="st">"b_Y"</span>, <span class="st">"b_M"</span>)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="resting-metabolic-rates_files/figure-html/trace-plots-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6"><img src="resting-metabolic-rates_files/figure-html/trace-plots-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="2100"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-2-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-3-tab">
+<div class="cell" data-layout-align="center">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># extract predicted values from model fit</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>R_pred <span class="ot">&lt;-</span> <span class="fu">extract</span>(rmr_model_fit)<span class="sc">$</span>R_pred</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co"># plot density overlay</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ppc_dens_overlay</span>(<span class="at">y =</span> rmr_stan_data<span class="sc">$</span>R, <span class="at">yrep =</span> R_pred[<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, ]) <span class="sc">+</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Log mass-specific metabolic rate (scaled)"</span>, <span class="at">y =</span> <span class="st">"Density"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="resting-metabolic-rates_files/figure-html/posterior-predictive-checks-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7"><img src="resting-metabolic-rates_files/figure-html/posterior-predictive-checks-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:66.0%"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-2-4" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-4-tab">
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>rmr_posteriors <span class="ot">&lt;-</span> <span class="fu">extract</span>(rmr_model_fit)<span class="sc">$</span>R_pred</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>rmr_data_comparison <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">body_temp =</span> (rmr_stan_data<span class="sc">$</span>T <span class="sc">*</span> <span class="dv">10</span>) <span class="sc">+</span> <span class="dv">25</span>, <span class="co"># back-transform to original scale</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">observed_rmr =</span> rmr_stan_data<span class="sc">$</span>R,</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">paste</span>(rmr_model_data<span class="sc">$</span>id, rmr_model_data<span class="sc">$</span>year),</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">predicted_rmr_mean =</span> <span class="fu">apply</span>(rmr_posteriors, <span class="dv">2</span>, mean),</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">predicted_rmr_lower =</span> <span class="fu">apply</span>(rmr_posteriors, <span class="dv">2</span>, quantile, <span class="at">probs =</span> <span class="fl">0.025</span>),</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">predicted_rmr_upper =</span> <span class="fu">apply</span>(rmr_posteriors, <span class="dv">2</span>, quantile, <span class="at">probs =</span> <span class="fl">0.975</span>)</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(rmr_data_comparison, <span class="fu">aes</span>(<span class="at">x =</span> observed_rmr, <span class="at">y =</span> predicted_rmr_mean)) <span class="sc">+</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_linerange</span>(</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">ymin =</span> predicted_rmr_lower, <span class="at">ymax =</span> predicted_rmr_upper),</span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.25</span></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">color =</span> <span class="st">"red"</span>, <span class="at">linetype =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Observed RMR"</span>, <span class="at">y =</span> <span class="st">"Predicted RMR (mean ± 95% CI)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="resting-metabolic-rates_files/figure-html/residuals-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8"><img src="resting-metabolic-rates_files/figure-html/residuals-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:66.0%"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
 </section>
 </section>
 <section id="extracting-individual-level-paramters" class="level3">
 <h3 class="anchored" data-anchor-id="extracting-individual-level-paramters">Extracting individual-level paramters</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># extract individual-level parameters from model</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>rmr_params <span class="ot">&lt;-</span> rmr_model_fit <span class="sc">|&gt;</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">spread_draws</span>(a_I[J], b_I[J]) <span class="sc">|&gt;</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(J) <span class="sc">|&gt;</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_intercept =</span> <span class="fu">mean</span>(a_I),</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_slope =</span> <span class="fu">mean</span>(b_I)</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="co"># re-scale parameters and add individual IDs</span></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>rmr_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(rmr_model_data<span class="sc">$</span>log_rmr_mass_specific, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>rmr_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(rmr_model_data<span class="sc">$</span>log_rmr_mass_specific, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>rmr_params <span class="ot">&lt;-</span> rmr_params <span class="sc">|&gt;</span></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">slope =</span> (mean_slope <span class="sc">*</span> rmr_sd) <span class="sc">/</span> <span class="dv">10</span>,</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">intercept_25 =</span> (mean_intercept <span class="sc">*</span> rmr_sd) <span class="sc">+</span> rmr_mean,</span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">intercept =</span> intercept_25 <span class="sc">-</span> slope <span class="sc">*</span> <span class="dv">25</span>,</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">site =</span> lizard_ids<span class="sc">$</span>site[J],</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">id =</span> lizard_ids<span class="sc">$</span>id[J],</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> lizard_ids<span class="sc">$</span>year[J]</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">site =</span> <span class="fu">ifelse</span>(<span class="fu">startsWith</span>(id, <span class="st">"T"</span>), <span class="st">"TLE"</span>, site)) <span class="sc">|&gt;</span></span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(id, year, site, intercept, slope) <span class="sc">|&gt;</span></span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Plotting individual-level parameters</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>rmr_params <span class="sc">|&gt;</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">cols =</span> <span class="fu">c</span>(intercept, slope),</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_to =</span> <span class="st">"parameter"</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_to =</span> <span class="st">"value"</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">population =</span> <span class="fu">paste</span>(site, year)) <span class="sc">|&gt;</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(population <span class="sc">!=</span> <span class="st">"HE 2024"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">paste</span>(site, year), <span class="at">y =</span> value, <span class="at">color =</span> population)) <span class="sc">+</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">width =</span> <span class="fl">0.2</span>, <span class="at">height =</span> <span class="dv">0</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_summary</span>(</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">fun.data =</span> mean_sdl, <span class="at">fun.args =</span> <span class="fu">list</span>(<span class="at">mult =</span> <span class="dv">1</span>)</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span>parameter, <span class="at">scales =</span> <span class="st">"free_y"</span>,</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">labeller =</span> <span class="fu">as_labeller</span>(</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">c</span>(</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">intercept =</span> <span class="st">"Intercept~of~log(RMR) %~% T[b]"</span>,</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">slope =</span> <span class="st">"Slope~of~log(RMR) %~% T[b]"</span></span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>      <span class="at">default =</span> label_parsed</span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Population"</span>, <span class="at">y =</span> <span class="st">"Parameter value"</span>) <span class="sc">+</span></span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> population_colors</span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">strip.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>)</span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="resting-metabolic-rates_files/figure-html/plot-individual-parameters-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9"><img src="resting-metabolic-rates_files/figure-html/plot-individual-parameters-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></a></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
+</section>
+<section id="relationship-between-individual-level-intercepts-and-slopes" class="level2">
+<h2 class="anchored" data-anchor-id="relationship-between-individual-level-intercepts-and-slopes">Relationship between individual-level intercepts and slopes</h2>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Plotting the relationship between individual-level intercepts and slopes</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>rmr_params <span class="sc">|&gt;</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> intercept, <span class="at">y =</span> slope, <span class="at">color =</span> <span class="fu">paste</span>(site, year))) <span class="sc">+</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Individual-level intercept"</span>,</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Individual-level slope"</span>,</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"Population"</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> population_colors</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"right"</span>,</span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">strip.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>)</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="resting-metabolic-rates_files/figure-html/intercept-slope-relationship-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-10"><img src="resting-metabolic-rates_files/figure-html/intercept-slope-relationship-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:75.0%"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Across all populations there appears to be an extremely strong correlation between intercept and slope. This allows us to simplify each individual’s metabolic reaction norm by creating a composite value that captures both traits at the same time. We call this variable the “metabolic reaction norm” (MRN) and we define it as:</p>
+<p><span class="math display">\[
+MRN_i = \frac{\beta_i - \overline{\beta}}{\operatorname{SD}(\beta)} - \frac{\alpha_i - \overline{\alpha}}{\operatorname{SD}(\alpha)}
+\]</span></p>
+<div class="cell" data-layout-align="center" data-code.summary="Defining and plotting the metabolic reaction norm (MRN)">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>rmr_params <span class="ot">&lt;-</span> rmr_params <span class="sc">|&gt;</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_intercept =</span> (intercept <span class="sc">-</span> <span class="fu">mean</span>(intercept)) <span class="sc">/</span> <span class="fu">sd</span>(intercept),</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_slope =</span> (slope <span class="sc">-</span> <span class="fu">mean</span>(slope)) <span class="sc">/</span> <span class="fu">sd</span>(slope)</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">mrn =</span> (scaled_slope <span class="sc">-</span> scaled_intercept))</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>rmr_params <span class="sc">|&gt;</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">cols =</span> <span class="fu">c</span>(scaled_intercept, scaled_slope),</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_to =</span> <span class="st">"parameter"</span>,</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_to =</span> <span class="st">"value"</span></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">y =</span> mrn, <span class="at">color =</span> <span class="fu">paste</span>(site, year))) <span class="sc">+</span></span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">width =</span> <span class="fl">0.2</span>, <span class="at">height =</span> <span class="dv">0</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Parameter value"</span>,</span>
+<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Metabolic Reaction Norm (MRN)"</span>,</span>
+<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"Population"</span></span>
+<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb36-22"><a href="#cb36-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb36-23"><a href="#cb36-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> population_colors</span>
+<span id="cb36-24"><a href="#cb36-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb36-25"><a href="#cb36-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(</span>
+<span id="cb36-26"><a href="#cb36-26" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span>parameter, <span class="at">scales =</span> <span class="st">"free_x"</span>, <span class="at">axes =</span> <span class="st">"all"</span>, <span class="at">strip.position =</span> <span class="st">"bottom"</span>,</span>
+<span id="cb36-27"><a href="#cb36-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">labeller =</span> <span class="fu">as_labeller</span>(<span class="fu">c</span>(</span>
+<span id="cb36-28"><a href="#cb36-28" aria-hidden="true" tabindex="-1"></a>      <span class="at">scaled_intercept =</span> <span class="st">"Scaled Intercept (α)"</span>,</span>
+<span id="cb36-29"><a href="#cb36-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">scaled_slope =</span> <span class="st">"Scaled Slope (β)"</span></span>
+<span id="cb36-30"><a href="#cb36-30" aria-hidden="true" tabindex="-1"></a>    ))</span>
+<span id="cb36-31"><a href="#cb36-31" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb36-32"><a href="#cb36-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb36-33"><a href="#cb36-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb36-34"><a href="#cb36-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb36-35"><a href="#cb36-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">strip.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>),</span>
+<span id="cb36-36"><a href="#cb36-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">strip.placement =</span> <span class="st">"outside"</span>,</span>
+<span id="cb36-37"><a href="#cb36-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.x =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb36-38"><a href="#cb36-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>),</span>
+<span id="cb36-39"><a href="#cb36-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.border =</span> <span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="cn">NA</span>)</span>
+<span id="cb36-40"><a href="#cb36-40" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="resting-metabolic-rates_files/figure-html/defining-and-plotting-mrn-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-11"><img src="resting-metabolic-rates_files/figure-html/defining-and-plotting-mrn-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="2100"></a></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
 <section id="seasonal-plasticity-in-rmr" class="level2">
 <h2 class="anchored" data-anchor-id="seasonal-plasticity-in-rmr">Seasonal plasticity in RMR</h2>
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get trial metadata</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>trial_metadata <span class="ot">&lt;-</span> respirometry <span class="sc">|&gt;</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(site, year, id, doy) <span class="sc">|&gt;</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>() <span class="sc">|&gt;</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">site =</span> <span class="fu">paste</span>(site, <span class="st">"E"</span>, <span class="at">sep =</span> <span class="st">""</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(site, year, id) <span class="sc">|&gt;</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">doy =</span> <span class="fu">mean</span>(doy), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a><span class="co"># merge trial metadata with rmr_params</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>rmr_params <span class="sc">|&gt;</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(trial_metadata, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"site"</span>, <span class="st">"year"</span>, <span class="st">"id"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2024</span>, site <span class="sc">!=</span> <span class="st">"HE"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">date =</span> <span class="fu">as.Date</span>(doy, <span class="at">origin =</span> <span class="fu">paste0</span>(year, <span class="st">"-01-01"</span>))</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> date, <span class="at">y =</span> mrn)) <span class="sc">+</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">color =</span> <span class="fu">paste</span>(site, year)),</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">width =</span> <span class="fl">0.2</span>, </span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">height =</span> <span class="dv">0</span>, </span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="dv">4</span>,</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.5</span></span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Date"</span>,</span>
+<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Metabolic Reaction Norm (MRN)"</span>,</span>
+<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"Population"</span></span>
+<span id="cb38-29"><a href="#cb38-29" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb38-30"><a href="#cb38-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb38-31"><a href="#cb38-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> population_colors</span>
+<span id="cb38-32"><a href="#cb38-32" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="resting-metabolic-rates_files/figure-html/combining-mrn-with-respirometry-metadata-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-12"><img src="resting-metabolic-rates_files/figure-html/combining-mrn-with-respirometry-metadata-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:66.0%"></a></p>
+</figure>
+</div>
+</div>
+</div>
 
 
 </section>

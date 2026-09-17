@@ -14,6 +14,9 @@ library(tidyverse)
 library(kableExtra)
 library(ggpubr)
 library(viridis)
+library(rstan)
+library(bayesplot)
+library(tidybayes)
 
 # options
 options(
@@ -282,12 +285,406 @@ Regarding the variance components, we assigned $\mathcal{N}(0, 0.5)$ priors (con
 
 #### `stan` code and model compilation
 
+Below is the `stan` code for the resting metabolic rates model:
+
+```{r print-model-code}
+#| class-output: stan
+#| code-fold: false
+#| echo: false
+
+cat(readLines("stan/resting-metabolic-rates.stan"), sep = "\n")
+
+```
+
+We pre-compute the `stan` model and save it as an RDS file to facilitate faster model fitting in subsequent analyses.
+
+```{r stan-model-compilation}
+#| eval: false
+#| code-summary: "Compile `stan` model and save as RDS file"
+
+## Note: This code chunk is not evaluated to avoid long rendering times.
+## The compiled model is saved as an RDS file for later use.
+
+rmr_model <- stan_model("stan/resting-metabolic-rates.stan")
+saveRDS(rmr_model, "stan/resting-metabolic-rates.rds")
+```
+
 #### Data preparation
+
+We prepare the data for `stan` model fitting. This involves filtering out rows with missing values, recoding site information, and arranging the data by year and individual ID. We then create a list containing the necessary variables for the `stan` model. In particular, `T` (body temperature) is centered around 25 degrees and scaled by 10 as we measured four temperatures (10, 20, 30, 40) and 25 represents the middle point of the range. We also scale `log_rmr_mass_specific` and `mass` to have mean 0 and standard deviation 1.
+
+```{r stan-data-preparation}
+#| code-fold: false
+#| code-summary: "Prepare data for `stan` model fitting"
+
+# filter out rows with missing log_rmr_mass_specific values
+rmr_model_data <- rmr_data |>
+  filter(!is.na(log_rmr_mass_specific)) |>
+  mutate(
+    site = paste(site, "E", sep = ""),
+    site = ifelse(site == "TLE", "LE", site) # recode TLE to LE
+  ) |>
+  arrange(year, id)
+
+# get list of unique site, year, individual combination
+lizard_ids <- rmr_model_data |> select(id, site, year) |> distinct()
+
+# pepare data as list
+rmr_stan_data <- list(
+  N = nrow(rmr_model_data),
+  J = nrow(lizard_ids),
+  I = as.numeric(as.factor(paste(rmr_model_data$id, rmr_model_data$year))),
+  T = (rmr_model_data$temp - 25) / 10,
+  R = as.numeric(scale(rmr_model_data$log_rmr_mass_specific)),
+  M = as.numeric(scale(rmr_model_data$mass)),
+  S = as.numeric(as.factor(lizard_ids$site)),
+  Y = as.numeric(as.factor(lizard_ids$year))
+)
+```
 
 #### Model fitting
 
+```{r stan-model-fitting}
+#| eval: false
+#| code-fold: false
+#| code-summary: "Fit `stan` model to data"
+
+## Note: This code chunk is not evaluated to avoid long rendering times.
+
+# load compiled stan model
+rmr_model <- readRDS("stan/resting-metabolic-rates.rds")
+
+# define function to provide initial values within prior constraints
+inits <- function() {
+  list(
+    a = -5,
+    b = 0.1,
+    Sigma = 0.5,
+    Tau = c(0.2, 0.2)
+  )
+}
+
+# sample from model
+rmr_model_fit <- sampling(
+  rmr_model,
+  data = rmr_stan_data,
+  iter = 4000,
+  warmup = 2000,
+  chains = 4,
+  cores = 4,
+  init = inits,
+  control = list(adapt_delta = 0.95, max_treedepth = 15)
+)
+
+# save fitted model
+saveRDS(rmr_model_fit, "raw_data/rmr_model_fit.rds")
+```
+
+:::{.callout-note}
+The object `rmr_model_fit` contains the fitted model results. It is saved locally in `raw_data/rmr_model_fit.rds` due to its large size. However, for transparency, the model summary and posterior distributions are shown below
+:::
+
+```{r show-model-fit}
+#| code-summary: "Show model fit"
+#| fig.align: "center"
+#| fig.width: 4
+#| fig.height: 4
+#| out-width: "66%"
+
+# load model fit
+rmr_model_fit <- readRDS("raw_data/rmr_model_fit.rds")
+
+print(
+  rmr_model_fit,
+  pars = c("a", "b", "a_S", "a_Y", "a_M", "b_S", "b_Y", "b_M")
+)
+
+mcmc_areas(
+  rmr_model_fit,
+  pars = c("a", "b", "a_S", "a_Y", "a_M", "b_S", "b_Y", "b_M"),
+  prob = 0.95
+) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    x = "Estimated value", y = "Parameter"
+  )
+```
+
+In the plot above the parameter correspondance is as follows:
+
+- `a` is $\alpha$: Overall intercept
+- `b` is $\beta$: Overall slope
+- `a_S` is $\alpha_S$: Site-level intercept
+- `a_Y` is $\alpha_Y$: Year-level intercept
+- `a_M` is $\alpha_M$: Mass-level intercept
+- `b_S` is $\beta_S$: Site-level slope
+- `b_Y` is $\beta_Y$: Year-level slope
+- `b_M` is $\beta_M$: Mass-level slope
+
 #### Model diagnostics
+
+In addition to the effective sample sizes (`n_eff`) and R-hat values (`Rhat`) of each parameter we present above, below we also assess model quality via 3 common diagnostics: trace plots, posterior predictive checks, and the examination of residuals.
+
+:::{.panel-tabset}
+
+## HMC diagnostics
+
+```{r run-hmc-diagnostics}
+#| code-fold: false
+check_hmc_diagnostics(rmr_model_fit)
+```
+
+## Trace plots
+
+```{r trace-plots}
+#| fig.align: "center"
+#| fig.width: 6
+#| fig.height: 4
+#| code-fold: false
+mcmc_trace(
+  rmr_model_fit,
+  pars = c("a", "b", "a_S", "a_Y", "a_M", "b_S", "b_Y", "b_M")
+)
+```
+
+## Posterior predictive checks
+
+```{r posterior-predictive-checks}
+#| fig.align: "center"
+#| fig.width: 6
+#| fig.height: 4
+#| out-width: "66%"
+#| code-fold: false
+
+# extract predicted values from model fit
+R_pred <- extract(rmr_model_fit)$R_pred
+
+# plot density overlay
+ppc_dens_overlay(y = rmr_stan_data$R, yrep = R_pred[1:100, ]) +
+labs(x = "Log mass-specific metabolic rate (scaled)", y = "Density")
+```
+
+
+## Examination of residuals
+
+```{r residuals}
+#| fig.align: "center"
+#| fig.width: 6
+#| fig.height: 4
+#| out-width: "66%"
+
+rmr_posteriors <- extract(rmr_model_fit)$R_pred
+rmr_data_comparison <- tibble(
+  body_temp = (rmr_stan_data$T * 10) + 25, # back-transform to original scale
+  observed_rmr = rmr_stan_data$R,
+  id = paste(rmr_model_data$id, rmr_model_data$year),
+  predicted_rmr_mean = apply(rmr_posteriors, 2, mean),
+  predicted_rmr_lower = apply(rmr_posteriors, 2, quantile, probs = 0.025),
+  predicted_rmr_upper = apply(rmr_posteriors, 2, quantile, probs = 0.975)
+)
+ggplot(rmr_data_comparison, aes(x = observed_rmr, y = predicted_rmr_mean)) +
+  geom_linerange(
+    aes(ymin = predicted_rmr_lower, ymax = predicted_rmr_upper),
+    alpha = 0.25
+  ) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = 2) +
+  labs(x = "Observed RMR", y = "Predicted RMR (mean ± 95% CI)")
+```
+
+:::
 
 ### Extracting individual-level paramters
 
+```{r extracting-individual-level-parameters}
+#| code-summary: "Extracting individual-level parameters from the model"
+#| code-fold: false
+
+# extract individual-level parameters from model
+rmr_params <- rmr_model_fit |>
+  spread_draws(a_I[J], b_I[J]) |>
+  group_by(J) |>
+  summarize(
+    mean_intercept = mean(a_I),
+    mean_slope = mean(b_I)
+  )
+
+# re-scale parameters and add individual IDs
+rmr_mean <- mean(rmr_model_data$log_rmr_mass_specific, na.rm = TRUE)
+rmr_sd <- sd(rmr_model_data$log_rmr_mass_specific, na.rm = TRUE)
+rmr_params <- rmr_params |>
+  mutate(
+    slope = (mean_slope * rmr_sd) / 10,
+    intercept_25 = (mean_intercept * rmr_sd) + rmr_mean,
+    intercept = intercept_25 - slope * 25,
+    site = lizard_ids$site[J],
+    id = lizard_ids$id[J],
+    year = lizard_ids$year[J]
+  ) |>
+  mutate(site = ifelse(startsWith(id, "T"), "TLE", site)) |>
+  select(id, year, site, intercept, slope) |>
+  unique()
+```
+
+```{r plot-individual-parameters}
+#| code-summary: "Plotting individual-level parameters"
+#| fig.align: "center"
+#| fig.width: 7
+#| fig.height: 4
+#| out-width: "100%"
+
+rmr_params |>
+  pivot_longer(
+    cols = c(intercept, slope),
+    names_to = "parameter",
+    values_to = "value"
+  ) |>
+  mutate(population = paste(site, year)) |>
+  filter(population != "HE 2024") |>
+  ggplot(aes(x = paste(site, year), y = value, color = population)) +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.5) +
+  stat_summary(
+    fun.data = mean_sdl, fun.args = list(mult = 1)
+  ) +
+  facet_wrap(
+    ~parameter, scales = "free_y",
+    labeller = as_labeller(
+      c(
+        intercept = "Intercept~of~log(RMR) %~% T[b]",
+        slope = "Slope~of~log(RMR) %~% T[b]"
+      ),
+      default = label_parsed
+    )
+  ) +
+  labs(x = "Population", y = "Parameter value") +
+  scale_color_manual(
+    values = population_colors
+  ) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(size = 12)
+  )
+```
+
+## Relationship between individual-level intercepts and slopes
+
+```{r intercept-slope-relationship}
+#| code-summary: "Plotting the relationship between individual-level intercepts and slopes"
+#| fig.align: "center"
+#| fig.width: 6
+#| fig.height: 4
+#| out-width: "75%"
+
+rmr_params |>
+  ggplot(aes(x = intercept, y = slope, color = paste(site, year))) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(method = "lm", se = FALSE) +
+  labs(
+    x = "Individual-level intercept",
+    y = "Individual-level slope",
+    color = "Population"
+  ) +
+  scale_color_manual(
+    values = population_colors
+  ) +
+  theme(
+    legend.position = "right",
+    strip.text = element_text(size = 12)
+  )
+```
+
+Across all populations there appears to be an extremely strong correlation between intercept and slope. This allows us to simplify each individual's metabolic reaction norm by creating a composite value that captures both traits at the same time. We call this variable the "metabolic reaction norm" (MRN) and we define it as:
+
+$$
+MRN_i = \frac{\beta_i - \overline{\beta}}{\operatorname{SD}(\beta)} - \frac{\alpha_i - \overline{\alpha}}{\operatorname{SD}(\alpha)}
+$$
+
+```{r defining-and-plotting-mrn}
+#| code.summary: "Defining and plotting the metabolic reaction norm (MRN)"
+#| fig.align: "center"
+#| fig.width: 6
+#| fig.height: 4
+
+rmr_params <- rmr_params |>
+  mutate(
+    scaled_intercept = (intercept - mean(intercept)) / sd(intercept),
+    scaled_slope = (slope - mean(slope)) / sd(slope)
+  ) |>
+  mutate(mrn = (scaled_slope - scaled_intercept))
+
+rmr_params |>
+  pivot_longer(
+    cols = c(scaled_intercept, scaled_slope),
+    names_to = "parameter",
+    values_to = "value"
+  ) |>
+  ggplot(aes(x = value, y = mrn, color = paste(site, year))) +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    x = "Parameter value",
+    y = "Metabolic Reaction Norm (MRN)",
+    color = "Population"
+  ) +
+  scale_color_manual(
+    values = population_colors
+  ) +
+  facet_wrap(
+    ~parameter, scales = "free_x", axes = "all", strip.position = "bottom",
+    labeller = as_labeller(c(
+      scaled_intercept = "Scaled Intercept (α)",
+      scaled_slope = "Scaled Slope (β)"
+    ))
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(size = 12),
+    strip.placement = "outside",
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 12),
+    panel.border = element_rect(fill = NA)
+  )
+```
+
 ## Seasonal plasticity in RMR
+
+```{r combining-mrn-with-respirometry-metadata}
+#| fig-align: "center"
+#| fig.width: 6
+#| fig.height: 4
+#| out.width: "66%"
+
+# get trial metadata
+trial_metadata <- respirometry |>
+  select(site, year, id, doy) |>
+  distinct() |>
+  mutate(site = paste(site, "E", sep = "")) |>
+  group_by(site, year, id) |>
+  summarise(doy = mean(doy), .groups = "drop")
+
+# merge trial metadata with rmr_params
+rmr_params |>
+  left_join(trial_metadata, by = c("site", "year", "id")) |>
+  filter(year == 2024, site != "HE") |>
+  mutate(
+    date = as.Date(doy, origin = paste0(year, "-01-01"))
+  ) |>
+  ggplot(aes(x = date, y = mrn)) +
+  geom_jitter(
+    aes(color = paste(site, year)),
+    width = 0.2, 
+    height = 0, 
+    size = 4,
+    alpha = 0.5
+  ) +
+  geom_smooth(method = "lm", color = "black") +
+  labs(
+    x = "Date",
+    y = "Metabolic Reaction Norm (MRN)",
+    color = "Population"
+  ) +
+  scale_color_manual(
+    values = population_colors
+  )
+```
